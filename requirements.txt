@@ -1,0 +1,20 @@
+langchain>=0.2
+langgraph>=0.1
+langchain-community
+langchain-openai          # or langchain-anthropic
+fastapi
+uvicorn
+streamlit
+pdfplumber
+python-docx
+pytesseract
+Pillow
+deep-translator
+chromadb                  # or faiss-cpu
+pydantic>=2.0
+pyyaml
+langfuse
+fastmcp
+httpx
+python-dotenv
+sentence-transformers     # for embeddings
