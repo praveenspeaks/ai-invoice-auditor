@@ -62,7 +62,8 @@ class TestExtractorAgent:
             result = extractor_agent(state)
         assert any("EXTRACTION_ERROR" in e for e in result["errors"])
 
-    def test_extraction_error_preserves_previous_errors(self):
+    def test_extraction_error_returns_only_new_error(self):
+        """Agent returns only the new error; reducer (not the agent) merges old errors."""
         with patch("agents.extractor_agent.harvest") as mock_h:
             mock_h.return_value = {
                 "raw_text": "", "detected_language": "en",
@@ -71,7 +72,9 @@ class TestExtractorAgent:
             state = initial_state("bad.pdf", {}, "pdf")
             state["errors"] = ["PRE_EXISTING"]
             result = extractor_agent(state)
-        assert "PRE_EXISTING" in result["errors"]
+        # Only the new EXTRACTION_ERROR is returned; old errors are NOT repeated
+        assert any("EXTRACTION_ERROR" in e for e in result["errors"])
+        assert "PRE_EXISTING" not in result["errors"]
 
     def test_real_pdf_extraction(self):
         """Integration: real PDF file, no mocks."""
@@ -79,6 +82,32 @@ class TestExtractorAgent:
         result = extractor_agent(state)
         assert result["raw_text"] != "" or result["errors"]  # either text or error
         assert result["detected_language"] in ("en", "unknown", "")
+
+    def test_meta_language_overrides_langdetect(self):
+        """Bug-1 fix: sidecar meta["language"] takes priority over langdetect output."""
+        with patch("agents.extractor_agent.harvest") as mock_h:
+            mock_h.return_value = {
+                "raw_text": "Factura No: FAC-001",
+                "detected_language": "en",   # langdetect got it wrong
+                "file_format": "pdf",
+                "error": None,
+            }
+            state = initial_state("invoice.pdf", {"language": "es"}, "pdf")
+            result = extractor_agent(state)
+        assert result["detected_language"] == "es"
+
+    def test_langdetect_used_when_meta_language_absent(self):
+        """Fallback to langdetect when meta has no language key."""
+        with patch("agents.extractor_agent.harvest") as mock_h:
+            mock_h.return_value = {
+                "raw_text": "Invoice text",
+                "detected_language": "de",
+                "file_format": "pdf",
+                "error": None,
+            }
+            state = initial_state("invoice.pdf", {}, "pdf")
+            result = extractor_agent(state)
+        assert result["detected_language"] == "de"
 
     def test_file_format_updated_from_harvest(self):
         with patch("agents.extractor_agent.harvest") as mock_h:

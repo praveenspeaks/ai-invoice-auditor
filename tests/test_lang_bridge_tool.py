@@ -321,7 +321,8 @@ class TestTranslationAgent:
         assert result["translated_text"] == ""
         assert result["translation_confidence"] == 0.0
 
-    def test_existing_errors_preserved(self):
+    def test_low_confidence_returns_only_new_error(self):
+        """Agent returns only the new LOW_CONFIDENCE error; reducer merges old errors."""
         from agents.translation_agent import translation_agent
         with patch("agents.translation_agent.translate") as mock_translate, \
              patch("agents.translation_agent.is_low_confidence", return_value=True):
@@ -335,4 +336,6 @@ class TestTranslationAgent:
                 "errors": ["PRE_EXISTING_ERROR"],
             }
             result = translation_agent(state)
-        assert "PRE_EXISTING_ERROR" in result["errors"]
+        # Only the new low-confidence error is returned; old errors NOT repeated
+        assert any("LOW_TRANSLATION_CONFIDENCE" in e for e in result["errors"])
+        assert "PRE_EXISTING_ERROR" not in result["errors"]

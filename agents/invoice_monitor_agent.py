@@ -41,28 +41,28 @@ def invoice_monitor_agent(state: InvoiceState) -> InvoiceState:
 
     if not new_invoices:
         logger.info("No new invoices found in %s", _INCOMING_DIR)
-        return state
+        return {}  # no-op: LangGraph keeps existing state unchanged
 
     # Process the first detected invoice (pipeline is per-invoice)
     invoice = new_invoices[0]
     logger.info("Processing invoice: %s", invoice["file_path"])
 
-    updated = initial_state(
+    # initial_state sets errors=[] — the reducer merges that with the graph's
+    # current errors ([] + [] = []), so previous errors are preserved correctly.
+    return initial_state(
         file_path=invoice["file_path"],
         meta=invoice["meta"],
         file_format=invoice["file_format"],
     )
-    # Carry forward any existing errors from state
-    updated["errors"] = list(state.get("errors", []))
-    return updated
 
 
-def _enrich_state(state: InvoiceState, file_path: str) -> InvoiceState:
-    """Fill in meta and file_format for a manually triggered state."""
+def _enrich_state(state: InvoiceState, file_path: str) -> dict:
+    """
+    Return only the enrichment updates for a manually triggered invoice.
+    Does NOT include reducer fields (errors/discrepancies) to avoid duplication.
+    """
     from tools.invoice_watcher_tool import _load_meta, _get_format
     path = Path(file_path)
-    if not state.get("meta"):
-        state["meta"] = _load_meta(path)
-    if not state.get("file_format"):
-        state["file_format"] = _get_format(path)
-    return state
+    meta = state.get("meta") or _load_meta(path)
+    file_format = state.get("file_format") or _get_format(path)
+    return {"file_path": file_path, "meta": meta, "file_format": file_format}

@@ -15,29 +15,36 @@ def extractor_agent(state: InvoiceState) -> InvoiceState:
     """
     LangGraph node — Extractor Agent.
 
-    Reads:  file_path, file_format
+    Reads:  file_path, file_format, meta
     Writes: raw_text, detected_language, file_format (normalised)
+
+    Language priority: meta["language"] (sidecar) > langdetect result.
+    Returns only the fields it changes; the LangGraph reducer handles
+    merging the errors list so agents must NOT include old errors in
+    their return value.
     """
     file_path = state.get("file_path", "")
     if not file_path:
-        return {**state, "errors": list(state.get("errors", [])) + ["EXTRACTOR: file_path is empty"]}
+        return {"errors": ["EXTRACTOR: file_path is empty"]}
 
     result = harvest(file_path)
 
     if result["error"]:
         logger.error("Extraction failed for %s: %s", file_path, result["error"])
         return {
-            **state,
             "raw_text": "",
             "detected_language": "en",
-            "errors": list(state.get("errors", [])) + [f"EXTRACTION_ERROR: {result['error']}"],
+            "errors": [f"EXTRACTION_ERROR: {result['error']}"],
         }
 
+    # Prefer explicit language from .meta.json sidecar over langdetect
+    meta_lang = state.get("meta", {}).get("language", "")
+    detected_language = meta_lang or result["detected_language"]
+
     logger.info("Extracted %d chars from %s (lang=%s)", len(result["raw_text"]),
-                file_path, result["detected_language"])
+                file_path, detected_language)
     return {
-        **state,
         "raw_text": result["raw_text"],
-        "detected_language": result["detected_language"],
+        "detected_language": detected_language,
         "file_format": result["file_format"],
     }

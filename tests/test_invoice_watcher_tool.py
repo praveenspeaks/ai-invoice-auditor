@@ -286,12 +286,12 @@ class TestInvoiceMonitorAgent:
         assert result["file_path"] is not None
         assert "INV_EN_001" in result["file_path"]
 
-    def test_polling_no_invoices_returns_unchanged_state(self, inbox, registry, monkeypatch):
+    def test_polling_no_invoices_returns_empty_dict(self, inbox, registry, monkeypatch):
         from agents.invoice_monitor_agent import invoice_monitor_agent
         import agents.invoice_monitor_agent as mod
         mod._INCOMING_DIR = str(inbox)
         mod._REGISTRY_PATH = registry
         state = {"errors": ["pre-existing error"]}
         result = invoice_monitor_agent(state)
-        # No new invoices → state unchanged
-        assert result["errors"] == ["pre-existing error"]
+        # No new invoices → agent returns {} so LangGraph preserves existing state
+        assert result == {}

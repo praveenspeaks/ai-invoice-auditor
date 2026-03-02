@@ -26,7 +26,7 @@ def translation_agent(state: InvoiceState) -> InvoiceState:
 
     if not raw_text:
         logger.warning("Translation agent: raw_text is empty — skipping")
-        return {**state, "translated_text": "", "translation_confidence": 0.0}
+        return {"translated_text": "", "translation_confidence": 0.0}
 
     result = translate(text=raw_text, source_language=detected_lang)
 
@@ -35,21 +35,22 @@ def translation_agent(state: InvoiceState) -> InvoiceState:
     error = result.get("error")
     was_translated = result["was_translated"]
 
+    # Return only fields this agent changes.  Do NOT spread {**state} for
+    # reducer fields (errors/discrepancies) — the LangGraph reducer merges
+    # them automatically and spreading would cause duplicate entries.
     updates: dict = {
         "translated_text": translated_text,
         "translation_confidence": confidence,
     }
 
     if error:
-        updates["errors"] = list(state.get("errors", [])) + [
-            f"TRANSLATION_ERROR: {error}"
-        ]
+        updates["errors"] = [f"TRANSLATION_ERROR: {error}"]
         updates["human_review_required"] = True
         logger.warning("Translation error — flagging for human review: %s", error)
 
     elif is_low_confidence(confidence):
         updates["human_review_required"] = True
-        updates["errors"] = list(state.get("errors", [])) + [
+        updates["errors"] = [
             f"LOW_TRANSLATION_CONFIDENCE: {confidence:.2f} (lang={detected_lang})"
         ]
         logger.warning(
@@ -67,4 +68,4 @@ def translation_agent(state: InvoiceState) -> InvoiceState:
     else:
         logger.info("No translation needed (lang=%s)", detected_lang)
 
-    return {**state, **updates}
+    return updates
