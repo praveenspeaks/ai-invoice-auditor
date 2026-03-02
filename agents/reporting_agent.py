@@ -8,12 +8,14 @@ Writes: report_path
 """
 
 from core.logger import get_logger
+from core.observability import trace_agent
 from core.state import InvoiceState
 from tools.insight_reporter_tool import generate_report
 
 logger = get_logger(__name__)
 
 
+@trace_agent("reporter")
 def reporting_agent(state: InvoiceState) -> dict:
     """
     LangGraph node — Reporting Agent.
