@@ -8,3 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local environment and generated outputs
+.env
+logs/
+outputs/reports/
+data/processed_registry.json
+data/vector_store/

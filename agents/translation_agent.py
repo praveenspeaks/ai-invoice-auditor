@@ -5,12 +5,14 @@ Sets human_review_required=True for low-confidence translations.
 """
 
 from core.logger import get_logger
+from core.observability import trace_agent
 from core.state import InvoiceState
 from tools.lang_bridge_tool import translate, is_low_confidence
 
 logger = get_logger(__name__)
 
 
+@trace_agent("translator")
 def translation_agent(state: InvoiceState) -> InvoiceState:
     """
     LangGraph node — Translation Agent.
