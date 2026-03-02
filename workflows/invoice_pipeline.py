@@ -4,11 +4,9 @@ LangGraph StateGraph wiring all 6 core agents into a sequential pipeline:
 
     monitor → extract → translate → validate_data → validate_business → report
 
-Stub nodes are used for agents not yet implemented so the graph can be
-executed end-to-end from Day 1.
+All agents are now real implementations (no stubs).
 """
 
-import os
 from typing import Literal
 
 from langgraph.graph import StateGraph, END
@@ -18,28 +16,11 @@ from core.state import InvoiceState, initial_state
 from agents.invoice_monitor_agent import invoice_monitor_agent
 from agents.extractor_agent import extractor_agent
 from agents.translation_agent import translation_agent
+from agents.data_validation_agent import data_validation_agent
+from agents.business_validation_agent import business_validation_agent
+from agents.reporting_agent import reporting_agent
 
 logger = get_logger(__name__)
-
-
-# ── Stub agents (replaced in later tasks) ─────────────────────────────────────
-
-def data_validation_agent(state: InvoiceState) -> InvoiceState:
-    """Stub — implemented in Task 2.1 (EP02-01)."""
-    logger.debug("data_validation_agent: stub")
-    return {**state, "validation_result": state.get("validation_result", {})}
-
-
-def business_validation_agent(state: InvoiceState) -> InvoiceState:
-    """Stub — implemented in Task 2.2 (EP02-02)."""
-    logger.debug("business_validation_agent: stub")
-    return {**state, "erp_data": state.get("erp_data", {}), "discrepancies": []}
-
-
-def reporting_agent(state: InvoiceState) -> InvoiceState:
-    """Stub — implemented in Task 2.3 (EP02-03)."""
-    logger.debug("reporting_agent: stub")
-    return {**state, "report_path": ""}
 
 
 # ── Routing ────────────────────────────────────────────────────────────────────
@@ -47,7 +28,7 @@ def reporting_agent(state: InvoiceState) -> InvoiceState:
 def _route_after_validation(state: InvoiceState) -> Literal["validate_business", "report"]:
     """
     After data_validation_agent: if recommendation is already REJECTED
-    (e.g. missing required fields / bad currency), skip business validation
+    (bad currency / missing required fields), skip business validation
     and go straight to reporting.
     """
     if state.get("recommendation") == "REJECTED":
@@ -68,18 +49,15 @@ def build_pipeline() -> StateGraph:
     """Construct and compile the invoice processing StateGraph."""
     graph = StateGraph(InvoiceState)
 
-    # Register nodes
-    graph.add_node("monitor",            invoice_monitor_agent)
-    graph.add_node("extract",            extractor_agent)
-    graph.add_node("translate",          translation_agent)
-    graph.add_node("validate_data",      data_validation_agent)
-    graph.add_node("validate_business",  business_validation_agent)
-    graph.add_node("report",             reporting_agent)
+    graph.add_node("monitor",           invoice_monitor_agent)
+    graph.add_node("extract",           extractor_agent)
+    graph.add_node("translate",         translation_agent)
+    graph.add_node("validate_data",     data_validation_agent)
+    graph.add_node("validate_business", business_validation_agent)
+    graph.add_node("report",            reporting_agent)
 
-    # Set entry point
     graph.set_entry_point("monitor")
 
-    # Edges
     graph.add_conditional_edges("monitor", _route_after_monitor, {
         "extract": "extract",
         END: END,
@@ -127,5 +105,5 @@ if __name__ == "__main__":
     result = run_pipeline(fp)
     print("\n=== Pipeline Result ===")
     for key in ["file_path", "file_format", "detected_language",
-                "translation_confidence", "recommendation", "errors"]:
+                "translation_confidence", "recommendation", "report_path", "errors"]:
         print(f"  {key}: {result.get(key)}")

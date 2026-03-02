@@ -47,6 +47,7 @@ class InvoiceState(TypedDict, total=False):
     # --- RAG ---
     rag_indexed: bool
     rag_query: str                # populated when running RAG subgraph
+    rag_query_filter: str         # optional: restrict retrieval to one invoice_no
     rag_chunks: list              # retrieved chunks
     rag_answer: str               # generated answer
     rag_sources: list             # source invoice references
