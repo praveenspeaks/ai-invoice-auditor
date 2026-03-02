@@ -4,8 +4,7 @@ LangGraph StateGraph wiring all 6 core agents into a sequential pipeline:
 
     monitor → extract → translate → validate_data → validate_business → report
 
-Stub nodes are used for agents not yet implemented so the graph can be
-executed end-to-end from Day 1.
+Stub nodes: business_validation_agent, reporting_agent (replaced in later tasks).
 """
 
 import os
@@ -18,16 +17,9 @@ from core.state import InvoiceState, initial_state
 from agents.invoice_monitor_agent import invoice_monitor_agent
 from agents.extractor_agent import extractor_agent
 from agents.translation_agent import translation_agent
+from agents.data_validation_agent import data_validation_agent
 
 logger = get_logger(__name__)
-
-
-# ── Stub agents (replaced in later tasks) ─────────────────────────────────────
-
-def data_validation_agent(state: InvoiceState) -> InvoiceState:
-    """Stub — implemented in Task 2.1 (EP02-01)."""
-    logger.debug("data_validation_agent: stub")
-    return {**state, "validation_result": state.get("validation_result", {})}
 
 
 def business_validation_agent(state: InvoiceState) -> InvoiceState:

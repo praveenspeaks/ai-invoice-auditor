@@ -180,11 +180,22 @@ class TestRoutingAfterValidation:
 # ── Stub agents ────────────────────────────────────────────────────────────────
 
 class TestStubAgents:
-    def test_data_validation_stub_passes_state(self):
-        from workflows.invoice_pipeline import data_validation_agent
-        state = InvoiceState(errors=[], discrepancies=[], validation_result={"x": 1})
-        result = data_validation_agent(state)
-        assert result["validation_result"] == {"x": 1}
+    def test_data_validation_agent_returns_validation_result(self):
+        """data_validation_agent is now real (EP02-01); test via mocked LLM."""
+        from agents.data_validation_agent import data_validation_agent
+        from unittest.mock import patch
+        with patch("agents.data_validation_agent.extract_fields") as mock_ef:
+            mock_ef.return_value = {
+                "invoice_no": "INV-1001", "invoice_date": "2025-03-14",
+                "vendor_id": "VEND-001", "vendor_name": "Test", "po_number": "PO-1",
+                "currency": "USD", "total_amount": 100.0,
+                "line_items": [{"item_code": "SKU-1", "description": "Item",
+                                "qty": 1, "unit_price": 100.0, "total": 100.0}],
+                "error": None,
+            }
+            state = InvoiceState(translated_text="Invoice text", errors=[], discrepancies=[])
+            result = data_validation_agent(state)
+        assert "validation_result" in result
 
     def test_business_validation_stub_sets_discrepancies(self):
         from workflows.invoice_pipeline import business_validation_agent
