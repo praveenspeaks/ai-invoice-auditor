@@ -12,6 +12,7 @@ Writes:  extracted_fields, validation_result, recommendation (if REJECTED),
 """
 
 from core.logger import get_logger
+from core.observability import trace_agent
 from core.state import InvoiceState
 from tools.field_extractor_tool import extract_fields
 from tools.data_completeness_checker import check
@@ -19,6 +20,7 @@ from tools.data_completeness_checker import check
 logger = get_logger(__name__)
 
 
+@trace_agent("data_validator")
 def data_validation_agent(state: InvoiceState) -> dict:
     """
     LangGraph node — Data Validation Agent.

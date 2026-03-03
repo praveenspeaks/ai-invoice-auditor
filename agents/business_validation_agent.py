@@ -10,12 +10,14 @@ Writes:  erp_data, discrepancies (via reducer), recommendation,
 
 from core.config import get_rules
 from core.logger import get_logger
+from core.observability import trace_agent
 from core.state import InvoiceState
 from tools.business_validation_tool import validate
 
 logger = get_logger(__name__)
 
 
+@trace_agent("business_validator")
 def business_validation_agent(state: InvoiceState) -> dict:
     """
     LangGraph node — Business Validation Agent.
