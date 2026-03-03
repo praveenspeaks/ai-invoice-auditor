@@ -9,7 +9,7 @@ from pathlib import Path
 
 from core.logger import get_logger
 from core.state import InvoiceState, initial_state
-from tools.invoice_watcher_tool import watch
+from tools.invoice_watcher_tool import mark_processed, watch
 
 logger = get_logger(__name__)
 
@@ -46,6 +46,7 @@ def invoice_monitor_agent(state: InvoiceState) -> InvoiceState:
     # Process the first detected invoice (pipeline is per-invoice)
     invoice = new_invoices[0]
     logger.info("Processing invoice: %s", invoice["file_path"])
+    mark_processed(invoice["file_path"], registry_path=_REGISTRY_PATH)
 
     # initial_state sets errors=[] — the reducer merges that with the graph's
     # current errors ([] + [] = []), so previous errors are preserved correctly.

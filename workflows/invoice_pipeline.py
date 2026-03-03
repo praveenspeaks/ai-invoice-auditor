@@ -8,6 +8,9 @@ All agents are now real implementations (no stubs).
 """
 
 from typing import Literal
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from langgraph.graph import StateGraph, END
 
@@ -19,8 +22,13 @@ from agents.translation_agent import translation_agent
 from agents.data_validation_agent import data_validation_agent
 from agents.business_validation_agent import business_validation_agent
 from agents.reporting_agent import reporting_agent
+from agents.rag.indexing_agent import indexing_agent
 
 logger = get_logger(__name__)
+
+# Load environment variables for CLI runs
+_root = Path(__file__).parent.parent
+load_dotenv(_root / ".env")
 
 
 # ── Routing ────────────────────────────────────────────────────────────────────
@@ -52,6 +60,7 @@ def build_pipeline() -> StateGraph:
     graph.add_node("monitor",           invoice_monitor_agent)
     graph.add_node("extract",           extractor_agent)
     graph.add_node("translate",         translation_agent)
+    graph.add_node("index",             indexing_agent)
     graph.add_node("validate_data",     data_validation_agent)
     graph.add_node("validate_business", business_validation_agent)
     graph.add_node("report",            reporting_agent)
@@ -63,7 +72,8 @@ def build_pipeline() -> StateGraph:
         END: END,
     })
     graph.add_edge("extract",           "translate")
-    graph.add_edge("translate",         "validate_data")
+    graph.add_edge("translate",         "index")
+    graph.add_edge("index",             "validate_data")
     graph.add_conditional_edges("validate_data", _route_after_validation, {
         "validate_business": "validate_business",
         "report":            "report",

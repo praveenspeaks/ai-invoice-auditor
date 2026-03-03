@@ -29,8 +29,8 @@ def watch(incoming_dir: str, registry_path: Optional[str] = None) -> list[dict]:
     Returns a list of invoice descriptors:
         [{"file_path": str, "meta": dict, "file_format": str}, ...]
 
-    Each returned file is immediately registered as processed so subsequent
-    calls to watch() will not return the same file again.
+    Note: watch() does not mark files as processed. The caller should mark
+    only the files it actually processes via mark_processed().
 
     Args:
         incoming_dir:   Directory to poll for new invoices.
@@ -61,11 +61,9 @@ def watch(incoming_dir: str, registry_path: Optional[str] = None) -> list[dict]:
             "file_format": file_format,
         }
         new_invoices.append(descriptor)
-        registry[key] = True
         logger.info("New invoice detected: %s (format=%s, lang=%s)",
                     file.name, file_format, meta.get("language", "?"))
 
-    _save_registry(reg_path, registry)
     return new_invoices
 
 
