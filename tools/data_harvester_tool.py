@@ -150,9 +150,25 @@ def _extract_image(path: Path) -> dict:
     # Pre-process: convert to greyscale for better OCR accuracy
     img = img.convert("L")
 
-    raw_text = pytesseract.image_to_string(img, config="--psm 6").strip()
-    logger.info("Image OCR extracted: %s (%d chars)", path.name, len(raw_text))
-    return _success_result(raw_text, [], "image")
+    try:
+        raw_text = pytesseract.image_to_string(img, config="--psm 6").strip()
+        if raw_text:
+            logger.info("Image OCR extracted: %s (%d chars)", path.name, len(raw_text))
+            return _success_result(raw_text, [], "image")
+    except Exception as exc:
+        logger.warning("Tesseract OCR failed for %s: %s", path.name, exc)
+
+    # Fallback to EasyOCR if Tesseract is not available
+    try:
+        import easyocr
+        reader = easyocr.Reader(["en"], gpu=False)
+        lines = reader.readtext(str(path), detail=0)
+        raw_text = "\n".join(lines).strip()
+        logger.info("EasyOCR extracted: %s (%d chars)", path.name, len(raw_text))
+        return _success_result(raw_text, [], "image")
+    except Exception as exc:
+        logger.error("EasyOCR failed for %s: %s", path.name, exc)
+        return _error_result(f"OCR failed: {exc}")
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

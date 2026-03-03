@@ -9,6 +9,7 @@ pdfplumber
 python-docx
 pytesseract
 Pillow
+easyocr
 deep-translator
 chromadb                  # or faiss-cpu
 pydantic>=2.0

@@ -53,13 +53,32 @@ Return ONLY a JSON object with exactly these keys."""
 
 def _build_llm():
     """Instantiate the LLM from environment configuration."""
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    # Priority: Azure OpenAI -> OpenAI -> Anthropic
+    azure_key = os.getenv("AZURE_OPENAI_API_KEY", "")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "")
+    azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+    openai_key = os.getenv("OPENAI_API_KEY", "")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
     model = os.getenv("LLM_MODEL", "gpt-4o-mini")
 
-    if api_key and not api_key.startswith("your_"):
+    if (
+        azure_key and not azure_key.startswith("your_")
+        and azure_endpoint
+        and azure_deployment
+    ):
+        from langchain_openai import AzureChatOpenAI
+        return AzureChatOpenAI(
+            azure_endpoint=azure_endpoint,
+            api_key=azure_key,
+            api_version=azure_api_version,
+            deployment_name=azure_deployment,
+            temperature=0,
+        )
+
+    if openai_key and not openai_key.startswith("your_"):
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(model=model, temperature=0, api_key=api_key)
+        return ChatOpenAI(model=model, temperature=0, api_key=openai_key)
 
     if anthropic_key and not anthropic_key.startswith("your_"):
         from langchain_anthropic import ChatAnthropic
